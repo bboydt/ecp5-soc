@@ -38,6 +38,11 @@ neorv32_build_dir = Dir("build/neorv32")
 # Environment
 #
 
+# @todo move address and length stuff to a file so we can add it as a source
+width = 32
+rom0_length = 16<<10
+bram0_length = 16<<10
+
 env = Environment(
     tools = ["yosys", "nextpnr", "trellis", "icarus"],
     toolpath = ["deps/scons-fpga"],
@@ -50,11 +55,16 @@ env = Environment(
     GHDL = "ghdl",
 
     IVFLAGS = iv_flags,
-
+    
     VPATH = [
         Dir("rtl").srcnode(),
         neorv32_build_dir.srcnode()
     ],
+
+    VDEFINES = {
+        "ROM0_LENGTH": rom0_length,
+        "BRAM0_LENGTH": bram0_length
+    },
 
     GHDL_FLAGS = ghdl_flags,
     YOSYSFLAGS = yosys_flags,

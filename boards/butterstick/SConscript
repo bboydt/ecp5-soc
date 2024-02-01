@@ -2,7 +2,7 @@ Import("*")
 
 ast = env.Command("top.json",
                   ["top.v"], 
-                  "yosys $YOSYSFLAGS -p \"read_verilog $SOURCES; synth_ecp5 -json $TARGET\"")
+                  "yosys $YOSYSFLAGS -p \"read_verilog -sv $_VINCFLAGS $_VDEFFLAGS $SOURCES; synth_ecp5 -json $TARGET\"")
 
 textcfg = env.Ecp5Pnr(ast)
 

@@ -1,6 +1,5 @@
 Import("*")
 
-# @todo move address and length stuff to a file so we can add it as a source
 width = 32
 rom0_length = 16<<10
 bram0_length = 16<<10
@@ -12,9 +11,5 @@ rom_init = env.Command(
 )
 
 env.Append(
-    VDEFINES = {
-        "ROM0_LENGTH": rom0_length,
-        "BRAM0_LENGTH": bram0_length
-    }
 )
 
