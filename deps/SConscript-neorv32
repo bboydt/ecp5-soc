@@ -1,0 +1,19 @@
+Import("*")
+
+neorv32_sources = ["#rtl/cores/neorv32.vhdl"]
+neorv32_sources.extend(Glob("#deps/neorv32/rtl/core/*.vhd"))
+neorv32_sources.extend(Glob("#deps/neorv32/rtl/core/mem/*.vhd"))
+
+neorv32_wrapper = env.Command(
+    "neorv32_wrapper.v", neorv32_sources,
+    [
+        Action(
+            "$GHDL import $GHDL_FLAGS --work=neorv32 --workdir=${TARGET.dir} -Pbuild $SOURCES;"
+            "$GHDL make $GHDL_FLAGS --work=neorv32 --workdir=${TARGET.dir} neorv32_wrapper;" +
+            "$GHDL synth $GHDL_FLAGS --work=neorv32 --workdir=${TARGET.dir} -Pbuild --out=verilog neorv32_wrapper > $TARGET",
+            cmdstr = "ghdl $TARGET"
+        )
+    ]
+)
+
+Return("neorv32_wrapper")
