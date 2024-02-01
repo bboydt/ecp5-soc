@@ -3,16 +3,21 @@
 // All slave masks must be one less than a power of two.
 // i.e. A slave with 8KB of address space would have a mask of 0x1FFF.
 // And their addresses must be a power of two.
+//
+// For now, there must be at least two masters.
+// Otherwise, MASTER_ADDR_WIDTH is -1 and ugly things happen.
 
-module arbitrator #(
+`define ASSIGN_2D_ARRAY(width, dst, dst_i, src, src_i) dst[dst_i * width +: width] <= src[src_i * width +: width]
+
+module interconnect #(
     parameter DATA_WIDTH = 32,
     parameter ADDR_WIDTH = 32,
 
     parameter MASTER_COUNT = 2,
     parameter SLAVE_COUNT = 4,
 
-    parameter [SLAVE_COUNT-1:0][ADDR_WIDTH-1:0] SLAVE_ADDR = 0,
-    parameter [SLAVE_COUNT-1:0][ADDR_WIDTH-1:0] SLAVE_MASK = 0
+    parameter [SLAVE_COUNT*ADDR_WIDTH-1:0] SLAVE_ADDR = 0,
+    parameter [SLAVE_COUNT*ADDR_WIDTH-1:0] SLAVE_MASK = 0
 ) (
     // syscon
     input sys_clk,
@@ -22,11 +27,11 @@ module arbitrator #(
     input [MASTER_COUNT-1:0] master_cyc,
     input [MASTER_COUNT-1:0] master_stb,
     input [MASTER_COUNT-1:0] master_we,
-    input [MASTER_COUNT-1:0][2:0] master_tag,
-    input [MASTER_COUNT-1:0][DATA_WIDTH/8-1:0] master_sel,
-    input [MASTER_COUNT-1:0][ADDR_WIDTH-1:0] master_adr,
-    input [MASTER_COUNT-1:0][DATA_WIDTH-1:0] master_mosi,
-    output reg [MASTER_COUNT-1:0][DATA_WIDTH-1:0] master_miso,
+    input [MASTER_COUNT*3-1:0] master_tag,
+    input [MASTER_COUNT*(DATA_WIDTH/8)-1:0] master_sel,
+    input [MASTER_COUNT*ADDR_WIDTH-1:0] master_adr,
+    input [MASTER_COUNT*DATA_WIDTH-1:0] master_mosi,
+    output reg [MASTER_COUNT*DATA_WIDTH-1:0] master_miso,
     output reg [MASTER_COUNT-1:0] master_ack,
     output reg [MASTER_COUNT-1:0] master_err,
 
@@ -34,18 +39,18 @@ module arbitrator #(
     output reg [SLAVE_COUNT-1:0] slave_cyc,
     output reg [SLAVE_COUNT-1:0] slave_stb,
     output reg [SLAVE_COUNT-1:0] slave_we,
-    output reg [SLAVE_COUNT-1:0][2:0] slave_tag,
-    output reg [SLAVE_COUNT-1:0][DATA_WIDTH/8-1:0] slave_sel,
-    output reg [SLAVE_COUNT-1:0][ADDR_WIDTH-1:0] slave_adr,
-    output reg [SLAVE_COUNT-1:0][DATA_WIDTH-1:0] slave_mosi,
-    input [SLAVE_COUNT-1:0][DATA_WIDTH-1:0] slave_miso,
+    output reg [SLAVE_COUNT*3-1:0] slave_tag,
+    output reg [SLAVE_COUNT*(DATA_WIDTH/8)-1:0] slave_sel,
+    output reg [SLAVE_COUNT*ADDR_WIDTH-1:0] slave_adr,
+    output reg [SLAVE_COUNT*DATA_WIDTH-1:0] slave_mosi,
+    input [SLAVE_COUNT*DATA_WIDTH-1:0] slave_miso,
     input [SLAVE_COUNT-1:0] slave_ack,
     input [SLAVE_COUNT-1:0] slave_err
 );
 
     // Decode master requests
     //
-    wire [MASTER_COUNT-1:0][SLAVE_COUNT-1:0] slave_req;
+    wire [MASTER_COUNT-1:0] slave_req[SLAVE_COUNT-1:0];
     genvar gen_m;
     genvar gen_s;
     generate
@@ -60,8 +65,8 @@ module arbitrator #(
     //
     localparam MASTER_ADDR_WIDTH = $clog2(MASTER_COUNT);
     localparam SLAVE_ADDR_WIDTH = $clog2(SLAVE_COUNT);
-    reg [MASTER_COUNT-1:0][SLAVE_ADDR_WIDTH-1:0] slave_select;
-    reg [SLAVE_COUNT-1:0][MASTER_ADDR_WIDTH-1:0] master_select;
+    reg [MASTER_COUNT-1:0] slave_select[SLAVE_ADDR_WIDTH-1:0];
+    reg [SLAVE_COUNT-1:0] master_select[MASTER_ADDR_WIDTH-1:0];
     reg [MASTER_COUNT-1:0] master_busy;
     reg [SLAVE_COUNT-1:0] slave_busy;
     integer m;
@@ -115,10 +120,10 @@ module arbitrator #(
                 slave_cyc[s] <= master_cyc[master_select[s]];
                 slave_stb[s] <= master_stb[master_select[s]];
                 slave_we[s] <= master_we[master_select[s]];
-                slave_tag[s] <= master_tag[master_select[s]];
-                slave_sel[s] <= master_sel[master_select[s]];
-                slave_adr[s] <= master_adr[master_select[s]];
-                slave_mosi[s] <= master_mosi[master_select[s]];
+                `ASSIGN_2D_ARRAY(3, slave_tag, s, master_tag, master_select[s]);
+                `ASSIGN_2D_ARRAY(DATA_WIDTH/8, slave_sel, s, master_tag, master_select[s]);
+                `ASSIGN_2D_ARRAY(ADDR_WIDTH, slave_adr, s, master_tag, master_select[s]);
+                `ASSIGN_2D_ARRAY(ADDR_WIDTH, slave_mosi, s, master_tag, master_select[s]);
             end else begin
                 slave_cyc[s] <= 0;
                 slave_stb[s] <= 0;

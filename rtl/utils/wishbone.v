@@ -59,6 +59,7 @@
     .MODULE_PREFIX``_err(INPUT_PREFIX``_err)
 
 // @todo add assertion that LENGTH must be a power of two
-`define WISHBONE_ADDR_RANGE(SLAVE, ORIGIN, LENGTH) \
-    localparam SLAVE``_ADDR = ORIGIN; \
-    localparam SLAVE``_MASK = LENGTH - 1
+`define WISHBONE_ADDR_RANGE(WIDTH, SLAVE, ORIGIN, LENGTH) \
+    integer [WIDTH-1:0] SLAVE``_ADDR = WIDTH'(ORIGIN); \
+    integer [WIDTH-1:0] SLAVE``_MASK = WIDTH'(LENGTH - 1)
+

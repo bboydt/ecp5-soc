@@ -1,10 +1,12 @@
 // SOC
 //
 
-`define ROM0_ORIGIN 'h00000000
-`define ROM0_LENGTH 16*1024
-`define BRAM0_ORIGIN 'h00004000
-`define BRAM0_LENGTH 16*1024
+`include "utils/wishbone.v"
+`include "package/interconnect.v"
+`include "cores/rom.v"
+`include "cores/bram.v"
+`include "neorv32_wrapper.v"
+
 
 module soc (
     input sys_clk,
@@ -17,34 +19,48 @@ module soc (
 
     // Slave Address Ranges
     //
+
+    localparam ROM0_ADDR = 32'h00000000;
+    localparam ROM0_MASK = 32'(`ROM0_LENGTH-1);
+    localparam BRAM0_ADDR = 32'h00004000;
+    localparam BRAM0_MASK = 32'(`BRAM0_LENGTH-1);
     
-    WISHBONE_ADDR_RANGE(ROM0, 32'(ROM0_ORIGIN), 32'(ROM0_LENGTH));
-    WISHBONE_ADDR_RANGE(BRAM0, 32'(BRAM0_ORIGIN), 32'(BRAM0_LENGTH);
+    initial begin
+        $display("");
+        $display(":: SoC Slave Address Map ::");
+        $display("ROM0_MASK = 0x%X", ROM0_ADDR);
+        $display("ROM0_ADDR = 0x%X", ROM0_MASK);
+        $display("BRAM0_MASK = 0x%X", BRAM0_ADDR);
+        $display("BRAM0_ADDR = 0x%X", BRAM0_MASK);
+        $display("");
+    end
 
     // Interconnect
     //
     
-    arbitrator #(
+    `WISHBONE_WIRES(dummy);
+
+    interconnect #(
         .DATA_WIDTH(32),
         .ADDR_WIDTH(32),
-        .MASTER_COUNT(1),
+        .MASTER_COUNT(2),
         .SLAVE_COUNT(2),
         .SLAVE_ADDR({ROM0_ADDR, BRAM0_ADDR}),
         .SLAVE_MASK({ROM0_MASK, BRAM0_MASK})
-    ) arb0 (
+    ) interconnect0 (
         .sys_clk(sys_clk),
         .sys_rst(sys_rst),
 
-        .master_cyc ({cpu0_cyc}),
-        .master_stb ({cpu0_stb}),
-        .master_we  ({cpu0_we}),
-        .master_tag ({cpu0_tag}),
-        .master_sel ({cpu0_sel}),
-        .master_adr ({cpu0_adr}),
-        .master_mosi({cpu0_mosi}),
-        .master_miso({cpu0_miso}),
-        .master_ack ({cpu0_ack}),
-        .master_err ({cpu0_err}),
+        .master_cyc ({dummy_cyc ,  cpu0_cyc }),
+        .master_stb ({dummy_stb ,  cpu0_stb }),
+        .master_we  ({dummy_we  ,  cpu0_we  }),
+        .master_tag ({dummy_tag ,  cpu0_tag }),
+        .master_sel ({dummy_sel ,  cpu0_sel }),
+        .master_adr ({dummy_adr ,  cpu0_adr }),
+        .master_mosi({dummy_mosi,  cpu0_mosi}),
+        .master_miso({dummy_miso,  cpu0_miso}),
+        .master_ack ({dummy_ack ,  cpu0_ack }),
+        .master_err ({dummy_err ,  cpu0_err }),
 
         .slave_cyc ({rom0_cyc,  bram0_cyc}),
         .slave_stb ({rom0_stb,  bram0_stb}),
@@ -69,7 +85,7 @@ module soc (
 
         .uart0_tx(uart0_tx),
         .uart0_rx(uart0_rx),
-        .gpio_out(gpio)
+        .gpio_out(gpio_out)
     );
 
     // ROM0
