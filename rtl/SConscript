@@ -18,5 +18,3 @@ env.Append(
     }
 )
 
-soc_vvp = env.VVPFile("soc.vvp", "soc.v")
-env.VVPRun(soc_vvp)
