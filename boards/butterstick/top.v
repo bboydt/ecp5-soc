@@ -18,6 +18,6 @@ module top (
         .sys_clk(clk30),
         .sys_rst(~user_buttons[1]),
         .uart0_tx(syzygy0_s[0]),
-        .uart0_tx(syzygy0_s[1])
+        .uart0_rx(syzygy0_s[1])
     );
 endmodule
