@@ -11,7 +11,10 @@
 module soc #(
     // Set EXT_MASTER_COUNT and EXT_SLAVE_COUNT to enable master and slave ports for external cores.
     parameter EXT_MASTER_COUNT = 0,
-    parameter EXT_SLAVE_COUNT = 0
+    parameter EXT_SLAVE_COUNT = 0,
+
+    parameter [EXT_SLAVE_COUNT*32-1:0] EXT_SLAVE_ADDRS = 0,
+    parameter [EXT_SLAVE_COUNT*32-1:0] EXT_SLAVE_MASKS = 0
 ) (
     input sys_clk,
     input sys_rst,
@@ -63,8 +66,8 @@ module soc #(
             .ADDR_WIDTH(32),
             .MASTER_COUNT(MASTER_COUNT),
             .SLAVE_COUNT(SLAVE_COUNT),
-            .SLAVE_ADDR({ROM0_ADDR, BRAM0_ADDR}),
-            .SLAVE_MASK({ROM0_MASK, BRAM0_MASK})
+            .SLAVE_ADDR({ROM0_ADDR, BRAM0_ADDR, EXT_SLAVE_ADDRS}),
+            .SLAVE_MASK({ROM0_MASK, BRAM0_MASK, EXT_SLAVE_MASKS})
         ) interconnect0 (
             .sys_clk(sys_clk),
             .sys_rst(sys_rst),
@@ -97,8 +100,8 @@ module soc #(
             .ADDR_WIDTH(32),
             .MASTER_COUNT(MASTER_COUNT),
             .SLAVE_COUNT(SLAVE_COUNT),
-            .SLAVE_ADDR({ROM0_ADDR, BRAM0_ADDR}),
-            .SLAVE_MASK({ROM0_MASK, BRAM0_MASK})
+            .SLAVE_ADDR({ROM0_ADDR, BRAM0_ADDR, EXT_SLAVE_ADDRS}),
+            .SLAVE_MASK({ROM0_MASK, BRAM0_MASK, EXT_SLAVE_MASKS})
         ) interconnect0 (
             .sys_clk(sys_clk),
             .sys_rst(sys_rst),
