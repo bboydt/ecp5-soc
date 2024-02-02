@@ -16,8 +16,8 @@ module soc #(
     input sys_clk,
     input sys_rst,
 
-    `WISHBONE_MASTER_ARRAY(ext_masters, EXT_MASTER_COUNT),
-    `WISHBONE_SLAVE_ARRAY(ext_slaves, EXT_SLAVE_COUNT),
+    `WISHBONE_SLAVE_ARRAY(ext_masters, EXT_MASTER_COUNT),
+    `WISHBONE_MASTER_ARRAY(ext_slaves, EXT_SLAVE_COUNT),
 
     output uart0_tx,
     input uart0_rx,
