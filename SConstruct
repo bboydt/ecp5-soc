@@ -92,7 +92,7 @@ env.Append(
 # SConscripts
 #
 
-SConscript(
+neorv32_wrapper = SConscript(
     "deps/SConscript-neorv32",
     variant_dir = neorv32_build_dir.path,
     duplicate = False,
@@ -110,6 +110,6 @@ SConscript(
     "boards/butterstick/SConscript",
     variant_dir = "build/butterstick",
     duplicate = False,
-    exports = { "env": env }
+    exports = { "env": env, "neorv32_wrapper": neorv32_wrapper }
 )
 
