@@ -1,11 +1,16 @@
 Import("*")
 
-neorv32_sources = [ROOT_DIR.File("rtl/cores/neorv32.vhdl")]
-neorv32_sources.extend(ROOT_DIR.glob("deps/neorv32/rtl/core/*.vhd"))
-neorv32_sources.extend(ROOT_DIR.glob("deps/neorv32/rtl/core/mem/*.vhd"))
+# This sconscript requires the following exports
+# - env: environment with GHDL tool
+# - neorv32_dir: directory to neorv32 repo
+# - neorv32_wrapper_src: path to a vhdl file with the neorv32 wrapper module
+
+neorv32_sources = [neorv32_wrapper_src]
+neorv32_sources.extend(neorv32_dir.glob("rtl/core/*.vhd"))
+neorv32_sources.extend(neorv32_dir.glob("rtl/core/mem/*.vhd"))
 
 neorv32_wrapper = env.Command(
-    "neorv32_wrapper.v", neorv32_sources,
+    "neorv32.v", neorv32_sources,
     [
         Action(
             "$GHDL import $GHDL_FLAGS --work=neorv32 --workdir=${TARGET.dir} -Pbuild $SOURCES;"
