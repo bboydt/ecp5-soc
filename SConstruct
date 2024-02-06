@@ -64,7 +64,6 @@ env = Environment(
 
     VPATH = [
         Dir("rtl").srcnode(),
-        neorv32_build_dir.srcnode()
     ],
 
     VDEFINES = {
@@ -102,7 +101,10 @@ neorv32_wrapper = SConscript(
     "deps/SConscript-neorv32",
     variant_dir = neorv32_build_dir.path,
     duplicate = False,
-    exports = { "env": env }
+    exports = { 
+        "env": env,
+        "ROOT_DIR": Dir("#")
+    }
 )
 
 soc_base = SConscript(

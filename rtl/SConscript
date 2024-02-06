@@ -1,5 +1,9 @@
 Import("*")
 
+env.Append(
+    VPATH = neorv32_wrapper[0].dir
+)
+
 sources = [
     "soc.v",
     "package/interconnect.v",

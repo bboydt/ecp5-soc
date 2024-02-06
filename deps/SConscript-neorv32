@@ -1,8 +1,8 @@
 Import("*")
 
-neorv32_sources = ["#rtl/cores/neorv32.vhdl"]
-neorv32_sources.extend(Glob("#deps/neorv32/rtl/core/*.vhd"))
-neorv32_sources.extend(Glob("#deps/neorv32/rtl/core/mem/*.vhd"))
+neorv32_sources = [ROOT_DIR.File("rtl/cores/neorv32.vhdl")]
+neorv32_sources.extend(ROOT_DIR.glob("deps/neorv32/rtl/core/*.vhd"))
+neorv32_sources.extend(ROOT_DIR.glob("deps/neorv32/rtl/core/mem/*.vhd"))
 
 neorv32_wrapper = env.Command(
     "neorv32_wrapper.v", neorv32_sources,
