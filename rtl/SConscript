@@ -1,15 +1,20 @@
 Import("*")
 
-width = 32
-rom0_length = 16<<10
-bram0_length = 16<<10
+sources = [
+    "soc.v",
+    "package/interconnect.v",
+    "cores/bram.v",
+    "cores/rom.v",
+    neorv32_wrapper,
+],
 
-rom_init = env.Command(
-    "rom.init", 
-    None, 
-    f"ecpbram -w {int(width)} -d {int(rom0_length/width)} -g $TARGET"
+soc_base = env.Command(
+    "ecp5_soc.json",
+    sources,
+    "yosys $YOSYSFLAGS -p '"+
+    " read_verilog $VFLAGS $_VINCFLAGS $_VDEFFLAGS $SOURCE;" +
+    " synth_ecp5 -json $TARGET" +
+    "'"
 )
 
-env.Append(
-)
-
+Return("soc_base")

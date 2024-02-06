@@ -11,7 +11,7 @@ ghdl_flags = [
 ]
 
 yosys_flags = [
-#    "-q",
+    "-q",
 ]
 
 nextpnr_flags = [ 
@@ -28,6 +28,10 @@ ecppack_flags = [
 
 iv_flags = [
     "-g2005-sv",
+]
+
+v_flags = [
+    "-sv"
 ]
 
 # Paths
@@ -56,6 +60,8 @@ env = Environment(
 
     IVFLAGS = iv_flags,
     
+    VFLAGS = v_flags,
+
     VPATH = [
         Dir("rtl").srcnode(),
         neorv32_build_dir.srcnode()
@@ -99,17 +105,32 @@ neorv32_wrapper = SConscript(
     exports = { "env": env }
 )
 
-SConscript(
+soc_base = SConscript(
     "rtl/SConscript",
     variant_dir = "build/rtl",
     duplicate = False,
-    exports = { "env": env }
-)
-
-SConscript(
-    "boards/butterstick/SConscript",
-    variant_dir = "build/butterstick",
-    duplicate = False,
     exports = { "env": env, "neorv32_wrapper": neorv32_wrapper }
 )
+
+if False:
+    neorv32_wrapper = SConscript(
+        "deps/SConscript-neorv32",
+        variant_dir = neorv32_build_dir.path,
+        duplicate = False,
+        exports = { "env": env }
+    )
+
+    SConscript(
+        "rtl/SConscript",
+        variant_dir = "build/rtl",
+        duplicate = False,
+        exports = { "env": env }
+    )
+
+    SConscript(
+        "boards/butterstick/SConscript",
+        variant_dir = "build/butterstick",
+        duplicate = False,
+        exports = { "env": env, "neorv32_wrapper": neorv32_wrapper }
+    )
 
