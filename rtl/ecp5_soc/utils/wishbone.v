@@ -23,6 +23,18 @@
     wire PREFIX``_ack; \
     wire PREFIX``_err
 
+`define WISHBONE_REGS(PREFIX) \
+    reg PREFIX``_cyc; \
+    reg PREFIX``_stb; \
+    reg PREFIX``_we; \
+    reg [2:0] PREFIX``_tag; \
+    reg [3:0] PREFIX``_sel; \
+    reg [31:0] PREFIX``_adr; \
+    reg [31:0] PREFIX``_mosi; \
+    reg [31:0] PREFIX``_miso; \
+    reg PREFIX``_ack; \
+    reg PREFIX``_err
+
 `define WISHBONE_MASTER(PREFIX) \
     output reg PREFIX``_cyc, \
     output reg PREFIX``_stb, \
@@ -94,4 +106,39 @@
     .MODULE_PREFIX``_miso(INPUT_PREFIX``_miso), \
     .MODULE_PREFIX``_ack(INPUT_PREFIX``_ack), \
     .MODULE_PREFIX``_err(INPUT_PREFIX``_err)
+
+`define WISHBONE_ZERO_REG(PREFIX) \
+    PREFIX``_cyc <= 0; \
+    PREFIX``_stb <= 0; \
+    PREFIX``_we <= 0; \
+    PREFIX``_tag <= 0; \
+    PREFIX``_sel <= 0; \
+    PREFIX``_adr <= 0; \
+    PREFIX``_mosi <= 0; \
+    PREFIX``_miso <= 0; \
+    PREFIX``_ack <= 0; \
+    PREFIX``_err <= 0
+
+`define WISHBONE_ZERO_SLAVE(PREFIX) \
+    PREFIX``_cyc <= 0; \
+    PREFIX``_stb <= 0; \
+    PREFIX``_we <= 0; \
+    PREFIX``_tag <= 0; \
+    PREFIX``_sel <= 0; \
+    PREFIX``_adr <= 0; \
+    PREFIX``_mosi <= 0
+
+`define WISHBONE_CONNECT(MASTER_PREFIX, SLAVE_PREFIX) \
+    SLAVE_PREFIX``_cyc <= MASTER_PREFIX``_cyc; \
+    SLAVE_PREFIX``_stb <= MASTER_PREFIX``_stb; \
+    SLAVE_PREFIX``_we <= MASTER_PREFIX``_we; \
+    SLAVE_PREFIX``_tag <= MASTER_PREFIX``_tag; \
+    SLAVE_PREFIX``_sel <= MASTER_PREFIX``_sel; \
+    SLAVE_PREFIX``_adr <= MASTER_PREFIX``_adr; \
+    SLAVE_PREFIX``_mosi <= MASTER_PREFIX``_mosi; \
+    MASTER_PREFIX``_miso <= SLAVE_PREFIX``_miso; \
+    MASTER_PREFIX``_ack <= SLAVE_PREFIX``_ack; \
+    MASTER_PREFIX``_err <= SLAVE_PREFIX``_err
+
+
 

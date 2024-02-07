@@ -16,6 +16,7 @@ module rom #(
     localparam MIN_ADDR_WIDTH = $clog2(DATA_LENGTH);
 
     reg [31:0] data[(LENGTH/4)-1:0];
+    initial $readmemh(INIT_FILE, data, 0, DATA_LENGTH - 1);
 
     integer b;
     always @(posedge sys_clk) begin

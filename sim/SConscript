@@ -1,0 +1,8 @@
+Import("*")
+
+env.Append(VPATH = env.Dir("."))
+rom_vvp = env.VVPFile("rom", ["rom_tb"])
+env.Depends(rom_vvp, "#rtl/ecp5_soc/utils/wishbone.v")
+env.Depends(rom_vvp, "#rtl/ecp5_soc/cores/rom.v")
+
+env.VVPRun(rom_vvp)
