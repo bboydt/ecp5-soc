@@ -1,14 +1,10 @@
 Import("*")
 
-env.Append(VPATH = env.Dir("."))
-rom_vvp = env.VVPFile("rom", ["rom_tb"])
-env.Depends(rom_vvp, "#rtl/ecp5_soc/utils/wishbone.v")
-env.Depends(rom_vvp, "#rtl/ecp5_soc/cores/rom.v")
+def do_sim(filename):
+    sim_exec = env.VVPFile(filename, [f"{filename}_tb.v"])
+    env.Command(f"{filename}.vcd", [sim_exec], "vvp $SOURCE +output=$TARGET")
 
-env.VVPRun(rom_vvp)
+sims = ["wishbone"]
 
-interconnect_vvp = env.VVPFile("interconnect", ["interconnect_tb"])
-env.Depends(interconnect_vvp, "#rtl/ecp5_soc/utils/wishbone.v")
-env.Depends(interconnect_vvp, "#rtl/ecp5_soc/package/interconnect.v")
-
-env.VVPRun(interconnect_vvp)
+for filename in sims:
+    do_sim(filename)
