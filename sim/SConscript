@@ -4,7 +4,7 @@ def do_sim(filename):
     sim_exec = env.VVPFile(filename, [f"{filename}_tb.v"])
     env.Command(f"{filename}.vcd", [sim_exec], "vvp $SOURCE +output=$TARGET")
 
-sims = ["wishbone"]
+sims = ["wishbone", "wishbone_crossbar"]
 
 for filename in sims:
     do_sim(filename)
