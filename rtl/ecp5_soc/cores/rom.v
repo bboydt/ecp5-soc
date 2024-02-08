@@ -5,7 +5,7 @@
 module rom #(
     parameter ADDR_WIDTH = 32,
     parameter LENGTH = 16384,
-    parameter INIT_FILE = ""
+    parameter INIT_FILE
 ) (
     input sys_clk,
     input sys_rst,
