@@ -59,6 +59,18 @@
     output reg PREFIX``_ack, \
     output reg PREFIX``_err
 
+`define WISHBONE_REGS_ARRAY(PREFIX, COUNT) \
+    reg [COUNT-1:0] PREFIX``_cyc; \
+    reg [COUNT-1:0] PREFIX``_stb; \
+    reg [COUNT-1:0] PREFIX``_we; \
+    reg [COUNT*3-1:0] PREFIX``_tag; \
+    reg [COUNT*4-1:0] PREFIX``_sel; \
+    reg [COUNT*32-1:0] PREFIX``_adr; \
+    reg [COUNT*32-1:0] PREFIX``_mosi; \
+    reg [COUNT*32-1:0] PREFIX``_miso; \
+    reg [COUNT-1:0] PREFIX``_ack; \
+    reg [COUNT-1:0] PREFIX``_err
+
 `define WISHBONE_WIRES_ARRAY(PREFIX, COUNT) \
     wire [COUNT-1:0] PREFIX``_cyc; \
     wire [COUNT-1:0] PREFIX``_stb; \
@@ -140,5 +152,14 @@
     MASTER_PREFIX``_ack <= SLAVE_PREFIX``_ack; \
     MASTER_PREFIX``_err <= SLAVE_PREFIX``_err
 
-
-
+`define WISHBONE_ASSIGN(MASTER_PREFIX, SLAVE_PREFIX) \
+    assign SLAVE_PREFIX``_cyc = MASTER_PREFIX``_cyc; \
+    assign SLAVE_PREFIX``_stb = MASTER_PREFIX``_stb; \
+    assign SLAVE_PREFIX``_we = MASTER_PREFIX``_we; \
+    assign SLAVE_PREFIX``_tag = MASTER_PREFIX``_tag; \
+    assign SLAVE_PREFIX``_sel = MASTER_PREFIX``_sel; \
+    assign SLAVE_PREFIX``_adr = MASTER_PREFIX``_adr; \
+    assign SLAVE_PREFIX``_mosi = MASTER_PREFIX``_mosi; \
+    assign MASTER_PREFIX``_miso = SLAVE_PREFIX``_miso; \
+    assign MASTER_PREFIX``_ack = SLAVE_PREFIX``_ack; \
+    assign MASTER_PREFIX``_err = SLAVE_PREFIX``_err

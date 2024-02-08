@@ -6,3 +6,9 @@ env.Depends(rom_vvp, "#rtl/ecp5_soc/utils/wishbone.v")
 env.Depends(rom_vvp, "#rtl/ecp5_soc/cores/rom.v")
 
 env.VVPRun(rom_vvp)
+
+interconnect_vvp = env.VVPFile("interconnect", ["interconnect_tb"])
+env.Depends(interconnect_vvp, "#rtl/ecp5_soc/utils/wishbone.v")
+env.Depends(interconnect_vvp, "#rtl/ecp5_soc/package/interconnect.v")
+
+env.VVPRun(interconnect_vvp)

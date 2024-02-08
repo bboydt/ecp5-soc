@@ -1,137 +1,136 @@
-// Wishbone Bus Arbitration Logic
-//
-// All slave masks must be one less than a power of two.
-// i.e. A slave with 8KB of address space would have a mask of 0x1FFF.
-// And their addresses must be a power of two.
-//
-// For now, there must be at least two masters.
-// Otherwise, MASTER_ADDR_WIDTH is -1 and ugly things happen.
 
-`define ASSIGN_2D_ARRAY(width, dst, dst_i, src, src_i) dst[dst_i * width +: width] <= src[src_i * width +: width]
 
-module interconnect #(
-    parameter DATA_WIDTH = 32,
-    parameter ADDR_WIDTH = 32,
-
+module wishbone_crossbar #(
     parameter MASTER_COUNT = 2,
-    parameter SLAVE_COUNT = 4,
+    parameter SLAVE_COUNT = 2,
+
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter TAG_WIDTH = 3,
 
     parameter [SLAVE_COUNT*ADDR_WIDTH-1:0] SLAVE_ADDR = 0,
     parameter [SLAVE_COUNT*ADDR_WIDTH-1:0] SLAVE_MASK = 0
 ) (
-    // syscon
     input sys_clk,
     input sys_rst,
 
-    // master ports
-    input [MASTER_COUNT-1:0] master_cyc,
-    input [MASTER_COUNT-1:0] master_stb,
-    input [MASTER_COUNT-1:0] master_we,
-    input [MASTER_COUNT*3-1:0] master_tag,
-    input [MASTER_COUNT*(DATA_WIDTH/8)-1:0] master_sel,
-    input [MASTER_COUNT*ADDR_WIDTH-1:0] master_adr,
-    input [MASTER_COUNT*DATA_WIDTH-1:0] master_mosi,
-    output reg [MASTER_COUNT*DATA_WIDTH-1:0] master_miso,
-    output reg [MASTER_COUNT-1:0] master_ack,
-    output reg [MASTER_COUNT-1:0] master_err,
+    input [MASTER_COUNT-1:0] m_cyc,
+    input [MASTER_COUNT-1:0] m_stb,
+    input [MASTER_COUNT-1:0] m_we,
+    input [MASTER_COUNT*TAG_WIDTH-1:0] m_tag,
+    input [MASTER_COUNT*DATA_WIDTH/8-1:0] m_sel,
+    input [MASTER_COUNT*ADDR_WIDTH-1:0] m_adr,
+    input [MASTER_COUNT*DATA_WIDTH-1:0] m_mosi,
+    output reg [MASTER_COUNT*DATA_WIDTH-1:0] m_miso,
+    output reg [MASTER_COUNT-1:0] m_ack,
+    output reg [MASTER_COUNT-1:0] m_err,
 
-    // slave ports
-    output reg [SLAVE_COUNT-1:0] slave_cyc,
-    output reg [SLAVE_COUNT-1:0] slave_stb,
-    output reg [SLAVE_COUNT-1:0] slave_we,
-    output reg [SLAVE_COUNT*3-1:0] slave_tag,
-    output reg [SLAVE_COUNT*(DATA_WIDTH/8)-1:0] slave_sel,
-    output reg [SLAVE_COUNT*ADDR_WIDTH-1:0] slave_adr,
-    output reg [SLAVE_COUNT*DATA_WIDTH-1:0] slave_mosi,
-    input [SLAVE_COUNT*DATA_WIDTH-1:0] slave_miso,
-    input [SLAVE_COUNT-1:0] slave_ack,
-    input [SLAVE_COUNT-1:0] slave_err
+    output reg [SLAVE_COUNT-1:0] s_cyc,
+    output reg [SLAVE_COUNT-1:0] s_stb,
+    output reg [SLAVE_COUNT-1:0] s_we,
+    output reg [SLAVE_COUNT*TAG_WIDTH-1:0] s_tag,
+    output reg [SLAVE_COUNT*DATA_WIDTH/8-1:0] s_sel,
+    output reg [SLAVE_COUNT*ADDR_WIDTH-1:0] s_adr,
+    output reg [SLAVE_COUNT*DATA_WIDTH-1:0] s_mosi,
+    input [SLAVE_COUNT*DATA_WIDTH-1:0] s_miso,
+    input [SLAVE_COUNT-1:0] s_ack,
+    input [SLAVE_COUNT-1:0] s_err
 );
 
-    // Decode master requests
+    localparam SEL_WIDTH = DATA_WIDTH/8;
+
+    reg [MASTER_COUNT*SLAVE_COUNT-1:0] slave_req;
+    reg [SLAVE_COUNT-1:0] slave_busy;
+    reg [MASTER_COUNT*SLAVE_COUNT-1:0] slave_grant;
+
+    initial begin
+        slave_req = 0;
+        slave_busy = 0;
+        slave_grant = 0;
+
+        m_miso = 0;
+        m_ack = 0;
+        m_err = 0;
+
+        s_cyc = 0;
+        s_stb = 0;
+        s_we = 0;
+        s_tag = 0;
+        s_sel = 0;
+        s_adr = 0;
+        s_mosi = 0;
+    end
+
+    genvar M, S;
+    integer m, s;
+
+    // Decode addresses
     //
-    wire [MASTER_COUNT-1:0] slave_req[SLAVE_COUNT-1:0];
-    genvar gen_m;
-    genvar gen_s;
-    generate
-        for (gen_m = 0; gen_m < MASTER_COUNT; gen_m++) begin
-            for (gen_s = 0; gen_s < SLAVE_COUNT; gen_s++) begin
-                assign slave_req[gen_m][gen_s] = ((master_adr[gen_m] ^ SLAVE_ADDR[gen_s] & ~SLAVE_MASK[gen_s]) == 0);
+    always @(*) begin
+        for (m = 0; m < MASTER_COUNT; m++) begin
+            slave_req[SLAVE_COUNT*m +: SLAVE_COUNT] = 0;
+            for (s = 0; s < SLAVE_COUNT; s++) begin
+                // and the award for longest line in history goes too...
+                slave_req[SLAVE_COUNT*m+s] = m_cyc[m] & (((m_adr[ADDR_WIDTH*m +: ADDR_WIDTH] ^ SLAVE_ADDR[ADDR_WIDTH*s +: ADDR_WIDTH]) & ~SLAVE_MASK[ADDR_WIDTH*s +: ADDR_WIDTH]) == 0);
             end
         end
-    endgenerate
+    end
 
-    // Handle requests
+    // Grant slaves to masters
     //
-    localparam MASTER_ADDR_WIDTH = $clog2(MASTER_COUNT);
-    localparam SLAVE_ADDR_WIDTH = $clog2(SLAVE_COUNT);
-    reg [MASTER_COUNT-1:0] slave_select[SLAVE_ADDR_WIDTH-1:0];
-    reg [SLAVE_COUNT-1:0] master_select[MASTER_ADDR_WIDTH-1:0];
-    reg [MASTER_COUNT-1:0] master_busy;
-    reg [SLAVE_COUNT-1:0] slave_busy;
-    integer m;
-    integer s;
-    always @(posedge sys_clk) begin
-    
-        // Grant master requests
-        //
+    always @(*) begin
         for (m = 0; m < MASTER_COUNT; m++) begin
-            if (master_cyc[m] & master_stb[m]) begin
-                for (s = 0; s < SLAVE_COUNT; s++) begin
-                    if (!slave_busy[s] && slave_req[m][s]) begin
-                        master_busy[m] <= 1'b1;
-                        master_select[s] <= MASTER_ADDR_WIDTH'(m);
-                        slave_busy[s] <= 1'b1;
-                        slave_select[m] <= SLAVE_ADDR_WIDTH'(s);
-                    end
+            for (s = 0; s < SLAVE_COUNT; s++) begin
+                if (~slave_busy[s] & slave_req[SLAVE_COUNT*m + s]) begin
+                    slave_busy[s] = 1'b1;
+                    slave_grant[SLAVE_COUNT*m+s] = 1'b1;
                 end
             end
         end
+    end
 
-        // Look for any busy slaves who no longer have an active master
-        //
-        // Note on the order of this:
-        // This is done after granting master requests so the slaves
-        // can observe stb go low.
-        //
-        for (s = 0; s < MASTER_COUNT; s++) begin
-            if (slave_busy[s] & ~master_stb[master_select[s]]) begin
-                slave_busy[s] <= 1'b0;
-                master_busy[master_select[s]] <= 1'b0;
-            end
-        end
-
-        // Connect masters to slaves and vice versa
-        //
+    // Connect masters to slaves
+    //
+    always @(*) begin
         for (m = 0; m < MASTER_COUNT; m++) begin
-            if (master_busy[m]) begin
-                master_miso[m] <= slave_miso[slave_select[m]];
-                master_ack[m] <= slave_ack[slave_select[m]];
-                master_err[m] <= slave_err[slave_select[m]];
-            end else begin
-                master_miso[m] <= 0;
-                master_ack[m] <= 0;
-                master_err[m] <= 0;
+            for (s = 0; s < SLAVE_COUNT; s++) begin
+                if (slave_grant[SLAVE_COUNT*m+s]) begin
+                    s_cyc[s] = m_cyc[m];
+                    s_stb[s] = m_stb[m];
+                    s_we[s] = m_we[m];
+                    s_tag[TAG_WIDTH*s +: TAG_WIDTH] = m_tag[TAG_WIDTH*m +: TAG_WIDTH];
+                    s_sel[SEL_WIDTH*s +: SEL_WIDTH] = m_sel[SEL_WIDTH*m +: SEL_WIDTH];
+                    s_adr[ADDR_WIDTH*s +: ADDR_WIDTH] = m_adr[ADDR_WIDTH*m +: ADDR_WIDTH];
+                    s_mosi[DATA_WIDTH*s +: DATA_WIDTH] = m_mosi[DATA_WIDTH*m +: DATA_WIDTH];
+                    m_miso[DATA_WIDTH*m +: DATA_WIDTH] = s_miso[DATA_WIDTH*s +: DATA_WIDTH];
+                    m_ack[m] = s_ack[s];
+                    m_err[m] = s_err[s];
+                end
             end
         end
+    end
 
-        for (s = 0; s < SLAVE_COUNT; s++) begin
-            if (slave_busy[s]) begin
-                slave_cyc[s] <= master_cyc[master_select[s]];
-                slave_stb[s] <= master_stb[master_select[s]];
-                slave_we[s] <= master_we[master_select[s]];
-                `ASSIGN_2D_ARRAY(3, slave_tag, s, master_tag, master_select[s]);
-                `ASSIGN_2D_ARRAY(DATA_WIDTH/8, slave_sel, s, master_tag, master_select[s]);
-                `ASSIGN_2D_ARRAY(ADDR_WIDTH, slave_adr, s, master_tag, master_select[s]);
-                `ASSIGN_2D_ARRAY(ADDR_WIDTH, slave_mosi, s, master_tag, master_select[s]);
-            end else begin
-                slave_cyc[s] <= 0;
-                slave_stb[s] <= 0;
-                slave_we[s] <= 0;
-                slave_tag[s] <= 0;
-                slave_sel[s] <= 0;
-                slave_adr[s] <= 0;
-                slave_mosi[s] <= 0;
+    // Clear connects
+    //
+    always @(posedge sys_clk) begin
+        for (m = 0; m < MASTER_COUNT; m++) begin
+            for (s = 0; s < SLAVE_COUNT; s++) begin
+                if (slave_grant[SLAVE_COUNT*m+s] & ~m_cyc[m]) begin
+                    slave_busy[s] <= 1'b0;
+                    slave_grant[SLAVE_COUNT*m+s] <= 1'b0;
+
+                    m_miso[DATA_WIDTH*m +: DATA_WIDTH] <= 0;
+                    m_ack[m] <= 1'b0;
+                    m_err[m] <= 1'b0;
+
+                    s_cyc[s] <= 1'b0;
+                    s_stb[s] <= 1'b0;
+                    s_we[s] <= 1'b0;
+                    s_tag[TAG_WIDTH*s +: TAG_WIDTH] <= 0;
+                    s_sel[SEL_WIDTH*s +: SEL_WIDTH] <= 0;
+                    s_adr[ADDR_WIDTH*s +: ADDR_WIDTH] <= 0;
+                    s_mosi[DATA_WIDTH*s +: DATA_WIDTH] <= 0;
+                end
             end
         end
     end
